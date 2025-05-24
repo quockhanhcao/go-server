@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"sync/atomic"
@@ -9,13 +8,6 @@ import (
 
 type apiConfig struct {
 	fileServerHits atomic.Int32
-}
-
-func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cfg.fileServerHits.Add(1)
-		next.ServeHTTP(w, r)
-	})
 }
 
 func main() {
@@ -31,8 +23,9 @@ func main() {
 
 	// route handler
 	mux.HandleFunc("GET /api/healthz", readinessHandler)
+	mux.HandleFunc("POST /api/validate_chirp", validateChirpHandler)
 	mux.HandleFunc("POST /admin/reset", apiCfg.resetMetricsHandler)
-	mux.HandleFunc("GET /admin/metrics", apiCfg.requestCountHandler)
+	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 
 	// start the server
 	server := &http.Server{
@@ -41,21 +34,4 @@ func main() {
 	}
 	log.Printf("Serving files from %s on port: %s\n", filePathRoot, port)
 	log.Fatal(server.ListenAndServe())
-}
-
-func readinessHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK\n"))
-}
-
-func (cfg *apiConfig) requestCountHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	count := cfg.fileServerHits.Load()
-	w.Write([]byte(fmt.Sprintf("<html>\n<body>\n<h1>Welcome, Chirpy Admin</h1>\n<p>Chirpy has been visited %d times!</p>\n</body></html>", count)))
-}
-
-func (cfg *apiConfig) resetMetricsHandler(w http.ResponseWriter, r *http.Request) {
-	cfg.fileServerHits.Store(0)
 }
