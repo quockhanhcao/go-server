@@ -14,7 +14,8 @@ import (
 
 type apiConfig struct {
 	fileServerHits atomic.Int32
-	dbQueries      *database.Queries
+	db             *database.Queries
+	platform       string
 }
 
 func main() {
@@ -24,12 +25,13 @@ func main() {
 	var apiCfg = apiConfig{}
 	// db queries
 	dbURL := os.Getenv("DB_URL")
-	db, err := sql.Open("postgres", dbURL)
+	dbConn, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to the database: %v", err)
 	}
-	dbQueries := database.New(db)
-	apiCfg.dbQueries = dbQueries
+	dbQueries := database.New(dbConn)
+	apiCfg.db = dbQueries
+	apiCfg.platform = os.Getenv("PLATFORM")
 
 	mux := http.NewServeMux()
 
@@ -39,8 +41,10 @@ func main() {
 
 	// route handler
 	mux.HandleFunc("GET /api/healthz", readinessHandler)
-	mux.HandleFunc("POST /api/validate_chirp", validateChirpHandler)
-	mux.HandleFunc("POST /admin/reset", apiCfg.resetMetricsHandler)
+	mux.HandleFunc("POST /api/users", apiCfg.createUsersHandler)
+	mux.HandleFunc("POST /api/chirps", apiCfg.createChirpHandler)
+
+	mux.HandleFunc("POST /admin/reset", apiCfg.deleteAllUsersHandler)
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 
 	// start the server
