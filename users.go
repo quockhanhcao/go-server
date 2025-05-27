@@ -4,13 +4,17 @@ import (
 	"encoding/json"
 	"net/http"
 	"time"
+
+	"github.com/quockhanhcao/go-server/internal/auth"
+	"github.com/quockhanhcao/go-server/internal/database"
 )
 
 type createUserBody struct {
-	Email string `json:"email"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
-type createUserResponse struct {
+type User struct {
 	ID        string    `json:"id"`
 	Email     string    `json:"email"`
 	CreatedAt time.Time `json:"created_at"`
@@ -25,12 +29,16 @@ func (apiCfg *apiConfig) createUsersHandler(w http.ResponseWriter, r *http.Reque
 		respondWithError(w, http.StatusBadRequest, "Couldn't decode params", err)
 		return
 	}
-	user, err := apiCfg.db.CreateUser(r.Context(), jsonBody.Email)
+	hashPassword, err := auth.HashPassword(jsonBody.Password)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to hash password", err)
+	}
+	user, err := apiCfg.db.CreateUser(r.Context(), database.CreateUserParams{Email: jsonBody.Email, Password: hashPassword})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to create user", err)
 		return
 	}
-	response := createUserResponse{
+	response := User{
 		ID:        user.ID.String(),
 		Email:     user.Email,
 		CreatedAt: user.CreatedAt,

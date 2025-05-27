@@ -41,9 +41,16 @@ func main() {
 
 	// route handler
 	mux.HandleFunc("GET /api/healthz", readinessHandler)
-	mux.HandleFunc("POST /api/users", apiCfg.createUsersHandler)
-	mux.HandleFunc("POST /api/chirps", apiCfg.createChirpHandler)
 
+	// users
+	mux.HandleFunc("POST /api/users", apiCfg.createUsersHandler)
+    mux.HandleFunc("POST /api/login", apiCfg.loginHandler)
+	// chirps
+	mux.HandleFunc("POST /api/chirps", apiCfg.createChirpHandler)
+	mux.HandleFunc("GET /api/chirps", apiCfg.getChirpsHandler)
+    mux.HandleFunc("GET /api/chirps/{id}", apiCfg.getChirpByIdHandler)
+
+	// admin routes
 	mux.HandleFunc("POST /admin/reset", apiCfg.deleteAllUsersHandler)
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 
