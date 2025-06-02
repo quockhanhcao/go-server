@@ -16,6 +16,7 @@ type apiConfig struct {
 	fileServerHits atomic.Int32
 	db             *database.Queries
 	platform       string
+	jwtSecret      string
 }
 
 func main() {
@@ -32,7 +33,9 @@ func main() {
 	dbQueries := database.New(dbConn)
 	apiCfg.db = dbQueries
 	apiCfg.platform = os.Getenv("PLATFORM")
-
+	// jwt secret
+	tokenSecret := os.Getenv("JWT_SECRET")
+	apiCfg.jwtSecret = tokenSecret
 	mux := http.NewServeMux()
 
 	// file server
@@ -44,11 +47,11 @@ func main() {
 
 	// users
 	mux.HandleFunc("POST /api/users", apiCfg.createUsersHandler)
-    mux.HandleFunc("POST /api/login", apiCfg.loginHandler)
+	mux.HandleFunc("POST /api/login", apiCfg.loginHandler)
 	// chirps
 	mux.HandleFunc("POST /api/chirps", apiCfg.createChirpHandler)
 	mux.HandleFunc("GET /api/chirps", apiCfg.getChirpsHandler)
-    mux.HandleFunc("GET /api/chirps/{id}", apiCfg.getChirpByIdHandler)
+	mux.HandleFunc("GET /api/chirps/{id}", apiCfg.getChirpByIdHandler)
 
 	// admin routes
 	mux.HandleFunc("POST /admin/reset", apiCfg.deleteAllUsersHandler)
